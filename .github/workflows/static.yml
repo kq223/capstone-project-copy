@@ -1,34 +1,42 @@
 # .github/workflows/static.yml
 
-# Simple workflow for deploying static content to GitHub Pages
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ['main']
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets the GITHUB_TOKEN permissions to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow one concurrent deployment
 concurrency:
   group: 'pages'
   cancel-in-progress: true
 
 jobs:
-  # Single deploy job since we're just deploying
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mydatabase
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -36,13 +44,29 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'       # Ensure compatibility with your project
-          cache: 'npm'             # Cache npm dependencies for faster builds
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Set up Environment Variables
+        run: |
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mydatabase" >> $GITHUB_ENV
 
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build and Export
+      - name: Run Prisma Migrations
+        run: npx prisma migrate deploy
+
+      - name: Build
         run: npm run build
 
       - name: Setup Pages
@@ -54,7 +78,6 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload the out.tar.gz file containing the static site
           path: ./out.tar.gz
 
       - name: Deploy to GitHub Pages
