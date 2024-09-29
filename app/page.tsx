@@ -11,7 +11,7 @@ import { auth } from "@/lib/auth"; // Server-side auth function
 import LogoutButton from "@/components/LogoutButton"; // Import the LogoutButton component
 
 export const metadata: Metadata = {
-  title: "Home",
+  title: "Homepage",
   description: "Welcome to the Home Page.",
 };
 
