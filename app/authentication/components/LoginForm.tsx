@@ -13,11 +13,13 @@ const LoginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters long"),
 });
 
+type LoginFormInputs = z.infer<typeof LoginSchema>;
+
 export function LoginForm() {
   const [error, setError] = useState<string | undefined>();
 
   // Initialize the form with zod schema validation
-  const form = useForm<z.infer<typeof LoginSchema>>({
+  const form = useForm<LoginFormInputs>({
     resolver: zodResolver(LoginSchema),
     defaultValues: {
       email: "",
@@ -26,7 +28,7 @@ export function LoginForm() {
   });
 
   // Handle form submission
-  const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
+  const onSubmit = async (values: LoginFormInputs) => {
     setError(undefined); // Clear previous errors
 
     try {
@@ -37,9 +39,13 @@ export function LoginForm() {
         setError(res.error);
       }
       // No need to handle redirection here as it's handled by the server action
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Handle unexpected errors
-      setError(err.message || "An unexpected error occurred");
+      if (err instanceof Error) {
+        setError(err.message || "An unexpected error occurred");
+      } else {
+        setError("An unexpected error occurred");
+      }
     }
   };
 
