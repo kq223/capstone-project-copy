@@ -1,9 +1,8 @@
 // next.config.js
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+module.exports = {
   output: "export", // Enables static HTML export
-  // You can add other Next.js configurations here
+  reactStrictMode: true,
+  // Add any other Next.js configurations here
 };
-
-module.exports = nextConfig;
